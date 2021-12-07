@@ -28,9 +28,9 @@ class Graph:
             for i, edge in enumerate(val):
                 difference = abs(minuend - self.image[edge[0]][edge[1]])
                 graph[key][i] = [edge, difference]
-                edges.append([key, edge, difference])
+                edges.append([list(key), edge, difference])
         
-        return list(graph.keys()), edges
+        return list(map(lambda x: self.image[x], graph.keys())), list(map(lambda x: [self.image[x[0][0]][x[0][1]], self.image[x[1][0]][x[1][1]], x[2]], edges))
 
     def adjacency_matrix(self):
         """Outputs adjacency matrix representation of graph."""
