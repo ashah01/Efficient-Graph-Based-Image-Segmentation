@@ -30,7 +30,7 @@ class DisjSet:
 
 	# Do union of two sets represented
 	# by x and y.
-	def Union(self, x, y):
+	def union(self, x, y):
 		
 		# Find current sets of x and y
 		xset = self.find(x)

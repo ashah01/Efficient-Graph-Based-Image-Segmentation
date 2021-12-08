@@ -1,6 +1,6 @@
 from PIL import Image
 import numpy as np
-from utils.disjoint_set_forest import DisjointSet
+from utils.disjoint_set_forest import DisjSet
 from utils.graph import Graph
 
 example_img = np.array([[1, 2, 3],
@@ -10,7 +10,7 @@ example_img = np.array([[1, 2, 3],
 G = Graph(example_img)
 V, E = G.adjacency_matrix()
 # Start with a segmentation S^0, where each vertex v_i is in its own component.
-segmentation = DisjointSet(example_img.size)
+segmentation = DisjSet(example_img.size)
 def mint(c_1, c_2):
     """Compute minimum internal difference"""
     # Compute minimum spanning trees MST(C, E) of the components c_1, c_2
@@ -22,4 +22,4 @@ for q in E:
     a = segmentation.find(v_i)
     b = segmentation.find(v_j)
     if a != b and weight <= mint(a, b):
-        segmentation.join(a, b)
+        segmentation.union(a, b)
