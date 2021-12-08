@@ -30,7 +30,7 @@ class Graph:
                 graph[key][i] = [edge, difference]
                 edges.append([list(key), edge, difference])
         
-        return list(map(lambda x: self.image[x], graph.keys())), list(map(lambda x: [self.image[x[0][0]][x[0][1]], self.image[x[1][0]][x[1][1]], x[2]], edges))
+        return list(map(lambda x: self.image[x], graph.keys())), sorted(list(map(lambda x: [self.image[x[0][0]][x[0][1]], self.image[x[1][0]][x[1][1]], x[2]], edges)), key=lambda x: x[2])
 
     def adjacency_matrix(self):
         """Outputs adjacency matrix representation of graph."""

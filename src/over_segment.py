@@ -9,14 +9,12 @@ example_img = np.array([[1, 2, 3],
 
 G = Graph(example_img)
 V, E = G.adjacency_matrix()
-
-# Sort E into π = (o1,...,om), by non-decreasing edge weight.
-E = sorted(E, key=lambda x: x[2])
-
 # Start with a segmentation S^0, where each vertex v_i is in its own component.
 segmentation = DisjointSet(example_img.size)
 def mint(c_1, c_2):
     """Compute minimum internal difference"""
+    # Compute minimum spanning trees MST(C, E) of the components c_1, c_2
+    # Identify largest weight of MST(C, E)
     pass
 # Construct S^q given S^{q−1} as follows. Let v_i and v_j denote the vertices connected by the q-th edge in the ordering, i.e., o_q = (v_i,v_j). If vi and v_j are in disjoint components of S+{q−1} and w(o_q) is small compared to the internal difference of both those components, then merge the two components otherwise do nothing.
 for q in E:

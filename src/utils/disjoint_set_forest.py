@@ -1,39 +1,57 @@
-import numpy as np
+# Python3 program to implement Disjoint Set Data
+# Structure.
+
+class DisjSet:
+	def __init__(self, n):
+		# Constructor to create and
+		# initialize sets of n items
+		self.rank = [1] * n
+		self.parent = [i for i in range(n)]
 
 
-class DisjointSet:
-    
-    def __init__(self, n_elements):
-        self.num = n_elements
-        self.elements = np.empty(
-            shape=(n_elements, 3),
-            dtype=int
-        )
-        for i in range(n_elements):
-            self.elements[i, 0] = 0
-            self.elements[i, 1] = 1
-            self.elements[i, 2] = i
+	# Finds set of given item x
+	def find(self, x):
+		
+		# Finds the representative of the set
+		# that x is an element of
+		if (self.parent[x] != x):
+			
+			# if x is not the parent of itself
+			# Then x is not the representative of
+			# its set,
+			self.parent[x] = self.find(self.parent[x])
+			
+			# so we recursively call Find on its parent
+			# and move i's node directly under the
+			# representative of this set
 
-    def size(self, x):
-        return self.elements[x, 1]
+		return self.parent[x]
 
-    def num_sets(self):
-        return self.num
 
-    def find(self, x):
-        y = int(x)
-        while y != self.elements[y, 2]:
-            y = self.elements[y, 2]
-        self.elements[x, 2] = y
-        return y
+	# Do union of two sets represented
+	# by x and y.
+	def Union(self, x, y):
+		
+		# Find current sets of x and y
+		xset = self.find(x)
+		yset = self.find(y)
 
-    def join(self, x, y):
-        if self.elements[x, 0] > self.elements[y, 0]:
-            self.elements[y, 2] = x
-            self.elements[x, 1] += self.elements[y, 1]
-        else:
-            self.elements[x, 2] = y
-            self.elements[y, 1] += self.elements[x, 1]
-            if self.elements[x, 0] == self.elements[y, 0]:
-                self.elements[y, 0] += 1
-        self.num -= 1
+		# If they are already in same set
+		if xset == yset:
+			return
+
+		# Put smaller ranked item under
+		# bigger ranked item if ranks are
+		# different
+		if self.rank[xset] < self.rank[yset]:
+			self.parent[xset] = yset
+
+		elif self.rank[xset] > self.rank[yset]:
+			self.parent[yset] = xset
+
+		# If ranks are same, then move y under
+		# x (doesn't matter which one goes where)
+		# and increment rank of x's tree
+		else:
+			self.parent[yset] = xset
+			self.rank[xset] = self.rank[xset] + 1
