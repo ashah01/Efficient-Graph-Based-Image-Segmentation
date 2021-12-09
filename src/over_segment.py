@@ -1,25 +1,66 @@
 from PIL import Image
 import numpy as np
-from utils.disjoint_set_forest import DisjSet
-from utils.graph import Graph
+from utils import *
 
-example_img = np.array([[1, 2, 3],
-                        [4, 5, 6],
-                        [7, 8, 9]]) # TODO: Change to input image post-testing
+example_img = np.arange(9).reshape((3, 3)) # TODO: Change to input image post-testing
 
-G = Graph(example_img)
-V, E = G.adjacency_matrix()
-# Start with a segmentation S^0, where each vertex v_i is in its own component.
-segmentation = DisjSet(example_img.size)
-def mint(c_1, c_2):
-    """Compute minimum internal difference"""
-    # Compute minimum spanning trees MST(C, E) of the components c_1, c_2
-    # Identify largest weight of MST(C, E)
-    pass
-# Construct S^q given S^{q−1} as follows. Let v_i and v_j denote the vertices connected by the q-th edge in the ordering, i.e., o_q = (v_i,v_j). If vi and v_j are in disjoint components of S+{q−1} and w(o_q) is small compared to the internal difference of both those components, then merge the two components otherwise do nothing.
-for q in E:
-    v_i, v_j, weight = q[0], q[1], q[2]
-    a = segmentation.find(v_i)
-    b = segmentation.find(v_j)
-    if a != b and weight <= mint(a, b):
-        segmentation.union(a, b)
+def adjacent_pixels(pixel_cord):
+    x = pixel_cord[0]
+    y = pixel_cord[1]
+    cord_matrix = [[max(0, x - 1), max(0, y - 1)], [max(0, x - 1), y], [max(0, x - 1), min(example_img.shape[1] - 1, y + 1)],
+                    [x, max(0, y - 1)], [x, min(example_img.shape[1] - 1, y + 1)],
+                    [min(example_img.shape[0] - 1, x + 1), max(0, y - 1)], [min(example_img.shape[0] - 1, x + 1), y], [min(example_img.shape[0] - 1, x + 1), min(example_img.shape[1] - 1, y + 1)]]
+    cord_matrix = np.array(cord_matrix)
+    dtype1 = np.dtype((np.void, cord_matrix.dtype.itemsize * np.prod(cord_matrix.shape[1:])))
+    b = np.ascontiguousarray(cord_matrix.reshape(cord_matrix.shape[0],-1)).view(dtype1)
+    new_arr = []
+    for (i, j) in cord_matrix[np.unique(b, return_index=1)[1]]:
+        if (i, j) != (x, y):
+            new_arr.append([i, j])
+    return new_arr
+
+def similarity(adjacent):
+    graph = adjacent
+    edges = []
+    for key, val in graph.items():
+        minuend = example_img[key]
+        for i, edge in enumerate(val):
+            difference = abs(minuend - example_img[edge[0]][edge[1]])
+            graph[key][i] = [edge, difference]
+            edges.append([list(key), edge, difference])
+    
+    return list(map(lambda x: example_img[x], graph.keys())), sorted(list(map(lambda x: [example_img[x[0][0]][x[0][1]], example_img[x[1][0]][x[1][1]], x[2]], edges)), key=lambda x: x[2])
+
+def adjacency_matrix():
+    """Outputs adjacency matrix representation of graph."""
+    M = {}
+    for i, row in enumerate(example_img):
+        for j, value in enumerate(row):
+            M[i, j] = adjacent_pixels([i, j])
+    for key, val in M.items():
+        for edge in val:
+            if list(key) in M[tuple(edge)]:
+                M[tuple(edge)].remove(list(key))
+    return similarity(M)
+
+V, E = adjacency_matrix()
+
+segmentation = DisjSet(len(V))
+
+def int(c):
+    """Compute internal difference of component C"""
+    vertices = [i for i, v in enumerate(segmentation.parent) if v == c]
+    edges = [edge for edge in E if edge[0] in vertices and edge[1] in vertices]
+    mst = Graph(len(vertices))
+    mst.graph = edges
+    return max([el[2] for el in mst.KruskalMST()])
+
+def mint(c1, c2, k=50):
+    return min(int(c1) + k/segmentation.size_of(c1), int(c2) + k/segmentation.size_of(c2))
+
+# for q in E:
+#     v_i, v_j, weight = q[0], q[1], q[2]
+#     a = segmentation.find(v_i)
+#     b = segmentation.find(v_j)
+#     if a != b and weight <= mint(a, b):
+#         segmentation.merge(a, b)

@@ -1,45 +1,76 @@
-import numpy as np
-
 class Graph:
-    """Convert image to be segmented into a graph"""
-    def __init__(self, image):
-        self.image = image
 
-    def _adjacent_pixels(self, pixel_cord):
-        x = pixel_cord[0]
-        y = pixel_cord[1]
-        cord_matrix = [[max(0, x - 1), max(0, y - 1)], [max(0, x - 1), y], [max(0, x - 1), min(self.image.shape[1] - 1, y + 1)],
-                        [x, max(0, y - 1)], [x, min(self.image.shape[1] - 1, y + 1)],
-                        [min(self.image.shape[0] - 1, x + 1), max(0, y - 1)], [min(self.image.shape[0] - 1, x + 1), y], [min(self.image.shape[0] - 1, x + 1), min(self.image.shape[1] - 1, y + 1)]]
-        cord_matrix = np.array(cord_matrix)
-        dtype1 = np.dtype((np.void, cord_matrix.dtype.itemsize * np.prod(cord_matrix.shape[1:])))
-        b = np.ascontiguousarray(cord_matrix.reshape(cord_matrix.shape[0],-1)).view(dtype1)
-        new_arr = []
-        for (i, j) in cord_matrix[np.unique(b, return_index=1)[1]]:
-            if (i, j) != (x, y):
-                new_arr.append([i, j])
-        return new_arr
+    def __init__(self, vertices):
+        self.V = vertices # No. of vertices
+        self.graph = [] # default dictionary
+        # to store graph
 
-    def _similarity(self, adjacent):
-        graph = adjacent
-        edges = []
-        for key, val in graph.items():
-            minuend = self.image[key]
-            for i, edge in enumerate(val):
-                difference = abs(minuend - self.image[edge[0]][edge[1]])
-                graph[key][i] = [edge, difference]
-                edges.append([list(key), edge, difference])
+    # function to add an edge to graph
+    def addEdge(self, u, v, w):
+        self.graph.append([u, v, w])
+
+    # A utility function to find set of an element i
+    # (uses path compression technique)
+    def find(self, parent, i):
+        if parent[i] == i:
+            return i
+        return self.find(parent, parent[i])
+
+    # A function that does union of two sets of x and y
+    # (uses union by rank)
+    def union(self, parent, rank, x, y):
+        xroot = self.find(parent, x)
+        yroot = self.find(parent, y)
+
+        # Attach smaller rank tree under root of
+        # high rank tree (Union by Rank)
+        if rank[xroot] < rank[yroot]:
+            parent[xroot] = yroot
+        elif rank[xroot] > rank[yroot]:
+            parent[yroot] = xroot
+
+        # If ranks are same, then make one as root
+        # and increment its rank by one
+        else:
+            parent[yroot] = xroot
+            rank[xroot] += 1
+
+    # The main function to construct MST using Kruskal's
+        # algorithm
+    def KruskalMST(self):
+
+        result = [] # This will store the resultant MST
         
-        return list(map(lambda x: self.image[x], graph.keys())), sorted(list(map(lambda x: [self.image[x[0][0]][x[0][1]], self.image[x[1][0]][x[1][1]], x[2]], edges)), key=lambda x: x[2])
+        # An index variable, used for sorted edges
+        i = 0
+        
+        # An index variable, used for result[]
+        e = 0
 
-    def adjacency_matrix(self):
-        """Outputs adjacency matrix representation of graph."""
-        M = {}
-        for i, row in enumerate(self.image):
-            for j, value in enumerate(row):
-                M[i, j] = self._adjacent_pixels([i, j])
-        for key, val in M.items():
-            for edge in val:
-                if list(key) in M[tuple(edge)]:
-                    M[tuple(edge)].remove(list(key))
-        return self._similarity(M)
+        parent = []
+        rank = []
+
+        # Create V subsets with single elements
+        for node in range(self.V):
+            parent.append(node)
+            rank.append(0)
+
+        # Number of edges to be taken is equal to V-1
+        while e < self.V - 1:
+
+            # Step 2: Pick the smallest edge and increment
+            # the index for next iteration
+            u, v, w = self.graph[i]
+            i = i + 1
+            x = self.find(parent, u)
+            y = self.find(parent, v)
+
+            # If including this edge does't
+            # cause cycle, include it in result
+            # and increment the indexof result
+            # for next edge
+            if x != y:
+                e = e + 1
+                result.append([u, v, w])
+                self.union(parent, rank, x, y)
+        return result

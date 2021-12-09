@@ -1,57 +1,31 @@
-# Python3 program to implement Disjoint Set Data
-# Structure.
-
 class DisjSet:
-	def __init__(self, n):
-		# Constructor to create and
-		# initialize sets of n items
-		self.rank = [1] * n
-		self.parent = [i for i in range(n)]
+	def __init__(self, num_node):
+		self.parent = [i for i in range(num_node)]
+		self.rank = [0 for i in range(num_node)]
+		self.size = [1 for i in range(num_node)]
+		self.num_set = num_node
 
+	def size_of(self, u):
+		return self.size[u]
 
-	# Finds set of given item x
-	def find(self, x):
-		
-		# Finds the representative of the set
-		# that x is an element of
-		if (self.parent[x] != x):
-			
-			# if x is not the parent of itself
-			# Then x is not the representative of
-			# its set,
-			self.parent[x] = self.find(self.parent[x])
-			
-			# so we recursively call Find on its parent
-			# and move i's node directly under the
-			# representative of this set
+	def find(self, u):
+		if self.parent[u] == u:
+			return u
 
-		return self.parent[x]
+		self.parent[u] = self.find(self.parent[u])
+		return self.parent[u]
 
+	def merge(self, u, v):
+		u = self.find(u)
+		v = self.find(v)
 
-	# Do union of two sets represented
-	# by x and y.
-	def union(self, x, y):
-		
-		# Find current sets of x and y
-		xset = self.find(x)
-		yset = self.find(y)
+		if u != v:
+			if self.rank[u] > self.rank[v]:
+				u, v = v, u
 
-		# If they are already in same set
-		if xset == yset:
-			return
+			self.parent[u] = v
+			self.size[v] += self.size[u]
+			if self.rank[u] == self.rank[v]:
+				self.rank[v] += 1
 
-		# Put smaller ranked item under
-		# bigger ranked item if ranks are
-		# different
-		if self.rank[xset] < self.rank[yset]:
-			self.parent[xset] = yset
-
-		elif self.rank[xset] > self.rank[yset]:
-			self.parent[yset] = xset
-
-		# If ranks are same, then move y under
-		# x (doesn't matter which one goes where)
-		# and increment rank of x's tree
-		else:
-			self.parent[yset] = xset
-			self.rank[xset] = self.rank[xset] + 1
+			self.num_set -= 1
