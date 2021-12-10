@@ -1,8 +1,7 @@
-from PIL import Image
 import numpy as np
 from utils import *
 
-example_img = np.arange(9).reshape((3, 3)) # TODO: Change to input image post-testing
+example_img = np.array([[200, 155, 74], [69, 13, 20], [115, 107, 62]])
 
 def adjacent_pixels(pixel_cord):
     x = pixel_cord[0]
@@ -44,13 +43,14 @@ def adjacency_matrix():
     return similarity(M)
 
 V, E = adjacency_matrix()
-
+dict_map = {vertex:counter for counter, vertex in enumerate(np.unique(np.array(V)))}
+E = list(map(lambda x: [dict_map[x[0]], dict_map[x[1]], x[2]], E))
 segmentation = DisjSet(len(V))
 
 def int(c):
     vertices = [i for i, v in enumerate(segmentation.parent) if v == c]
-    dict_map = {vertex:counter for counter, vertex in enumerate(vertices)}
-    edges = [Edge(dict_map[edge[0]], dict_map[edge[1]], edge[2]) for edge in E if edge[0] in vertices and edge[1] in vertices]
+    dict_map_alpha = {vertex:counter for counter, vertex in enumerate(vertices)}
+    edges = [Edge(dict_map_alpha[edge[0]], dict_map_alpha[edge[1]], edge[2]) for edge in E if edge[0] in vertices and edge[1] in vertices]
     mst = Graph(len(vertices), edges)
     return max([el.weight for el in mst.KruskalMST()]) if mst.KruskalMST() else 0
 
