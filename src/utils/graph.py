@@ -1,76 +1,54 @@
-class Graph:
+from typing import List # for annotations
 
-    def __init__(self, vertices):
-        self.V = vertices # No. of vertices
-        self.graph = [] # default dictionary
-        # to store graph
+class Edge :
 
-    # function to add an edge to graph
-    def addEdge(self, u, v, w):
-        self.graph.append([u, v, w])
+   def __init__(self, arg_src : int, arg_dst : int, arg_weight : int) :
+       self.src = arg_src
+       self.dst = arg_dst
+       self.weight = arg_weight
 
-    # A utility function to find set of an element i
-    # (uses path compression technique)
-    def find(self, parent, i):
-        if parent[i] == i:
-            return i
-        return self.find(parent, parent[i])
+class Graph :
 
-    # A function that does union of two sets of x and y
-    # (uses union by rank)
-    def union(self, parent, rank, x, y):
-        xroot = self.find(parent, x)
-        yroot = self.find(parent, y)
+    def __init__(self, num_nodes : int, edgelist : List[Edge]) :
+        self.num_nodes = num_nodes
+        self.edgelist  = edgelist
+        self.parent    = []
+        self.rank      = []
+        # mst stores edges of the minimum spanning tree
+        self.mst       = []
 
-        # Attach smaller rank tree under root of
-        # high rank tree (Union by Rank)
-        if rank[xroot] < rank[yroot]:
-            parent[xroot] = yroot
-        elif rank[xroot] > rank[yroot]:
-            parent[yroot] = xroot
+    def FindParent(self, node : int) :
+        # With path-compression.
+        if node != self.parent[node] :
+            self.parent[node] = self.FindParent(self.parent[node])
+        return self.parent[node]
 
-        # If ranks are same, then make one as root
-        # and increment its rank by one
-        else:
-            parent[yroot] = xroot
-            rank[xroot] += 1
+        # Without path compression
+        # if node == self.parent[node] :
+        #    return node
+        # return self.FindParent(self.parent[node])
 
-    # The main function to construct MST using Kruskal's
-        # algorithm
     def KruskalMST(self):
 
-        result = [] # This will store the resultant MST
-        
-        # An index variable, used for sorted edges
-        i = 0
-        
-        # An index variable, used for result[]
-        e = 0
+        self.parent = [None] * self.num_nodes
+        self.rank   = [None] * self.num_nodes
 
-        parent = []
-        rank = []
+        for n in range(self.num_nodes) :
+            self.parent[n] = n # Every node is the parent of itself at the beginning
+            self.rank[n] = 0   # Rank of every node is 0 at the beginning
 
-        # Create V subsets with single elements
-        for node in range(self.V):
-            parent.append(node)
-            rank.append(0)
+        for edge in self.edgelist :
+            root1 = self.FindParent(edge.src)
+            root2 = self.FindParent(edge.dst)
 
-        # Number of edges to be taken is equal to V-1
-        while e < self.V - 1:
-
-            # Step 2: Pick the smallest edge and increment
-            # the index for next iteration
-            u, v, w = self.graph[i]
-            i = i + 1
-            x = self.find(parent, u)
-            y = self.find(parent, v)
-
-            # If including this edge does't
-            # cause cycle, include it in result
-            # and increment the indexof result
-            # for next edge
-            if x != y:
-                e = e + 1
-                result.append([u, v, w])
-                self.union(parent, rank, x, y)
-        return result
+            # Parents of the source and destination nodes are not in the same subset
+            # Add the edge to the spanning tree
+            if root1 != root2 :
+               self.mst.append(edge)
+               if self.rank[root1] < self.rank[root2] :
+                  self.parent[root1] = root2
+                  self.rank[root2] += 1
+               else :
+                  self.parent[root2] = root1
+                  self.rank[root1] += 1
+        return self.mst

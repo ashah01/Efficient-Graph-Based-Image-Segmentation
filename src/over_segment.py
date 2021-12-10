@@ -48,19 +48,18 @@ V, E = adjacency_matrix()
 segmentation = DisjSet(len(V))
 
 def int(c):
-    """Compute internal difference of component C"""
     vertices = [i for i, v in enumerate(segmentation.parent) if v == c]
-    edges = [edge for edge in E if edge[0] in vertices and edge[1] in vertices]
-    mst = Graph(len(vertices))
-    mst.graph = edges
-    return max([el[2] for el in mst.KruskalMST()])
+    dict_map = {vertex:counter for counter, vertex in enumerate(vertices)}
+    edges = [Edge(dict_map[edge[0]], dict_map[edge[1]], edge[2]) for edge in E if edge[0] in vertices and edge[1] in vertices]
+    mst = Graph(len(vertices), edges)
+    return max([el.weight for el in mst.KruskalMST()]) if mst.KruskalMST() else 0
 
 def mint(c1, c2, k=50):
     return min(int(c1) + k/segmentation.size_of(c1), int(c2) + k/segmentation.size_of(c2))
 
-# for q in E:
-#     v_i, v_j, weight = q[0], q[1], q[2]
-#     a = segmentation.find(v_i)
-#     b = segmentation.find(v_j)
-#     if a != b and weight <= mint(a, b):
-#         segmentation.merge(a, b)
+for q in E:
+    v_i, v_j, weight = q
+    a = segmentation.find(v_i)
+    b = segmentation.find(v_j)
+    if a != b and weight <= mint(a, b):
+        segmentation.merge(a, b)
