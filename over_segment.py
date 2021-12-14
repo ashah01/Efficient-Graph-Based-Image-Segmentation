@@ -1,65 +1,79 @@
+from PIL import Image, ImageFilter
+from matplotlib.pyplot import *
+from collections import defaultdict
 import numpy as np
-from utils import *
+from utils.disjoint_set_forest import UF
 
-example_img = np.array([[200, 155, 74], [69, 13, 20], [115, 107, 62]])
-
-def adjacent_pixels(pixel_cord):
-    x = pixel_cord[0]
-    y = pixel_cord[1]
-    cord_matrix = [[max(0, x - 1), max(0, y - 1)], [max(0, x - 1), y], [max(0, x - 1), min(example_img.shape[1] - 1, y + 1)],
-                    [x, max(0, y - 1)], [x, min(example_img.shape[1] - 1, y + 1)],
-                    [min(example_img.shape[0] - 1, x + 1), max(0, y - 1)], [min(example_img.shape[0] - 1, x + 1), y], [min(example_img.shape[0] - 1, x + 1), min(example_img.shape[1] - 1, y + 1)]]
-    cord_matrix = np.array(cord_matrix)
-    dtype1 = np.dtype((np.void, cord_matrix.dtype.itemsize * np.prod(cord_matrix.shape[1:])))
-    b = np.ascontiguousarray(cord_matrix.reshape(cord_matrix.shape[0],-1)).view(dtype1)
-    new_arr = []
-    for (i, j) in cord_matrix[np.unique(b, return_index=1)[1]]:
-        if (i, j) != (x, y):
-            new_arr.append([i, j])
-    return new_arr
-
-def similarity(adjacent):
-    graph = adjacent
-    edges = []
-    for key, val in graph.items():
-        minuend = example_img[key]
-        for i, edge in enumerate(val):
-            difference = abs(minuend - example_img[edge[0]][edge[1]])
-            graph[key][i] = [edge, difference]
-            edges.append([list(key), edge, difference])
+def to_graph(im):
+    """
+    Convert image to graph. 8-connected, based on intensity absolute difference
+    """
     
-    return list(map(lambda x: example_img[x], graph.keys())), sorted(list(map(lambda x: [example_img[x[0][0]][x[0][1]], example_img[x[1][0]][x[1][1]], x[2]], edges)), key=lambda x: x[2])
+    edges = {}
+    num_rows, num_cols = im.height, im.width    
+    image = np.empty((num_rows,num_cols, 3))
+    
+    imiter = iter(im.getdata())
+    
+    for row in range(num_rows):
+        for col in range(num_cols):
+            image[row, col, :] = imiter.__next__()
 
-def adjacency_matrix():
-    """Outputs adjacency matrix representation of graph."""
-    M = {}
-    for i, row in enumerate(example_img):
-        for j, value in enumerate(row):
-            M[i, j] = adjacent_pixels([i, j])
-    for key, val in M.items():
-        for edge in val:
-            if list(key) in M[tuple(edge)]:
-                M[tuple(edge)].remove(list(key))
-    return similarity(M)
+    for row in range(num_rows):
+        for col in range(num_cols):
+            cur = image[row,col]
+            diff = lambda a,b: (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2
+            if row < image.shape[0] -1:
+                edges[((row,col),(row+1,col))] = diff(cur, image[row+1,col])
+            if col < image.shape[1] - 1:
+                edges[((row,col), (row, col+1))] = diff(cur, image[row,col+1])
+    return edges
 
-V, E = adjacency_matrix()
-dict_map = {vertex:counter for counter, vertex in enumerate(np.unique(np.array(V)))}
-E = list(map(lambda x: [dict_map[x[0]], dict_map[x[1]], x[2]], E))
-segmentation = DisjSet(len(V))
 
-def int(c):
-    vertices = [i for i, v in enumerate(segmentation.parent) if v == c]
-    dict_map_alpha = {vertex:counter for counter, vertex in enumerate(vertices)}
-    edges = [Edge(dict_map_alpha[edge[0]], dict_map_alpha[edge[1]], edge[2]) for edge in E if edge[0] in vertices and edge[1] in vertices]
-    mst = Graph(len(vertices), edges)
-    return max([el.weight for el in mst.KruskalMST()]) if mst.KruskalMST() else 0
+def tao(size, k=5000.):
+    return k/size
 
-def mint(c1, c2, k=50):
-    return min(int(c1) + k/segmentation.size_of(c1), int(c2) + k/segmentation.size_of(c2))
+def segment(image, k=5000.):
+    uf_nodes = UF(image.width*image.height)
+    internal = defaultdict(lambda: (0,1))
+    count = 0
+    graph = to_graph(image)
+    edges = sorted(graph.items(), key=lambda x: x[1])
+    for edge in edges:
+        count += 1
+        to_node = edge[0][1]
+        from_node = edge[0][0]
+        weight = edge[1]
+        
+        # set_name is a single node
+        set_name1 = uf_nodes.find(to_node)
+        set_name2 = uf_nodes.find(from_node)
 
-for q in E:
-    v_i, v_j, weight = q
-    a = segmentation.find(v_i)
-    b = segmentation.find(v_j)
-    if a != b and weight <= mint(a, b):
-        segmentation.merge(a, b)
+        int1,size1 = internal[set_name1]
+            
+        int2,size2 = internal[set_name2]
+            
+        if weight <= min(int1+tao(size1, k=k), int2+tao(size2,k=k)) and set_name1 != set_name2:
+            uf_nodes.union(to_node, from_node)
+            new_set_name = uf_nodes.find(to_node)
+            del internal[set_name1]
+            del internal[set_name2]
+            internal[new_set_name] = weight, size1+size2+1
+    return uf_nodes
+
+
+def create_segment_image(union_find, im):
+    uf = union_find
+    image = np.empty((im.height,im.width), dtype=np.uint16)
+    for i in range(im.height):
+        for j in range(im.width):
+            image[i,j] = uf.find((i,j))
+    return image
+
+
+
+if __name__ == '__main__':
+    image = Image.open('./52.png').filter(ImageFilter.MedianFilter)
+    image.thumbnail((28,28))
+    imshow(create_segment_image(segment(image, 1000), image), cmap='Accent')
+    show()
